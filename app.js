@@ -49,11 +49,14 @@
     // Target URLs is intentionally a configurable legacy-safe rule until the Excel formula is supplied.
     // const targetUrls=total*s.targetUrlMultiplier,
     // const targetUrls=472.5/(su*3.5+nsu*1.5), 
-     const targetUrls = weighted > 0 ? s.productivityDenominator / weighted : 0,
+     const suPct = total ? su / total : 0;
+     const nsuPct = total ? nsu / total : 0;
+     const targetUrls =(suPct * s.suAht + nsuPct * s.nsuAht) > 0 ? s.productivityDenominator /
+      (suPct * s.suAht + nsuPct * s.nsuAht): 0;
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
-    return{date:raw.date||'',su,nsu,ut,utException:utEx,prodException:prodEx,total,weighted,suPct:total?su/total*100:0,nsuPct:total?nsu/total*100:0,targetUrls,deficitUrls,utDeficit,prod540,productivity,prodDeficit,exception,utExceptionHours:hours(utEx),prodExceptionHours:hours(prodEx),exceptionHours:hours(exception)};
+    return{date:raw.date||'',su,nsu,ut,utException:utEx,prodException:prodEx,total,weighted,suPct:suPct*100:0,nsuPct:nsuPct*100:0,targetUrls,deficitUrls,utDeficit,prod540,productivity,prodDeficit,exception,utExceptionHours:hours(utEx),prodExceptionHours:hours(prodEx),exceptionHours:hours(exception)};
   }
   function monthRecords(){const m=$('#monthPicker').value;return state.records.filter(r=>r.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b))}
   // REQUIRED PERFORMANCE: (target average × working days − achieved total) ÷ remaining working days.
