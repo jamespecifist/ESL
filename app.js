@@ -3,7 +3,8 @@
   'use strict';
   const KEY='james-workflow-v2', $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
   const DEFAULT_SETTINGS={suAht:3.5,nsuAht:1.5,availableMinutes:540,productivityDenominator:472.5,productivityTarget:110,utMinimum:85,storageMode:'localStorage',workingDays:[true,true,true,true,true,false,false]};
-  let state={records:[],settings:{...DEFAULT_SETTINGS},holidays:[],theme:'light'}, editing=null;
+  const DEFAULT_ANALYZER={keywords:'',specific:'',noChange:'',capExceptions:''};
+  let state={records:[],settings:{...DEFAULT_SETTINGS},holidays:[],theme:'light',analyzerSettings:{...DEFAULT_ANALYZER}}, editing=null;
   const num=v=>{v=Number(v);return Number.isFinite(v)&&v>=0?v:0}; const round=(v,d=2)=>Number.isFinite(v)?+v.toFixed(d):0;
   const pct=v=>`${round(v)}%`, minutes=v=>round(v), hours=v=>round(v/60);
   const esc=s=>String(s).replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
@@ -16,7 +17,7 @@
 
   // STORAGE: localStorage is the reliable static-site default. IndexedDB preference keeps a localStorage mirror fallback.
   function load(){
-    try{const x=JSON.parse(localStorage.getItem(KEY));if(x){state={...state,...x,settings:{...DEFAULT_SETTINGS,...x.settings}};state.records=state.records.map(calculate)}}
+    try{const x=JSON.parse(localStorage.getItem(KEY));if(x){state={...state,...x,settings:{...DEFAULT_SETTINGS,...x.settings},analyzerSettings:{...DEFAULT_ANALYZER,...x.analyzerSettings}};state.records=state.records.map(calculate)}}
     catch(e){console.warn('Could not load data',e)}}
   function persist(){localStorage.setItem(KEY,JSON.stringify(state)); if(state.settings.storageMode==='indexedDB') idbSave().catch(()=>toast('IndexedDB unavailable; LocalStorage backup kept'));}
   function idbSave(){return new Promise((ok,bad)=>{const r=indexedDB.open('JamesWorkflow',1);r.onupgradeneeded=()=>r.result.createObjectStore('data');r.onerror=()=>bad(r.error);r.onsuccess=()=>{const t=r.result.transaction('data','readwrite');t.objectStore('data').put(state,'main');t.oncomplete=ok;t.onerror=()=>bad(t.error)}})}
@@ -41,16 +42,18 @@
     // Productivity = weighted work minutes ÷ available minutes × 100. Exception minutes reduce available time.
     const effective540=Math.max(1,s.availableMinutes-prodEx), 
       effective472=Math.max(1,s.productivityDenominator-prodEx), 
-      prod540=(su*s.suAht+nsu*s.nsuAht)*100/availableMinutes), 
-      productivity=((su*s.suAht+nsu*s.nsuAht)*100/productivityDenominator);
+      prod540=weighted/effective540*100, 
+      productivity=weighted/effective472*100;
     // Excel equivalent: IFERROR(472.5 / (SU% * 3.5 + NSU% * 1.5), "0").
-    // suPct and nsuPct are displayed as 0–100 in the app, so convert them to decimal shares first.
-    const targetDenominator=(total ? su/total : 0)*s.suAht+(total ? nsu/total : 0)*s.nsuAht,
-      targetUrls=targetDenominator ? s.productivityDenominator/targetDenominator : 0,
-      deficitUrls=targetUrls-total, 
+    // These percentage shares stay decimal internally: 50% is 0.50.
+    const suPct=total>0 ? su/total : 0,
+      nsuPct=total>0 ? nsu/total : 0,
+      targetAht=(suPct*s.suAht)+(nsuPct*s.nsuAht),
+      targetUrls=targetAht>0 ? 472.5/targetAht : 0,
+      deficitUrls=targetUrls-total,
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
-    return{date:raw.date||'',su,nsu,ut,utException:utEx,prodException:prodEx,total,weighted,suPct:total?su/total*100:0,nsuPct:total?nsu/total*100:0,targetUrls,deficitUrls,utDeficit,prod540,productivity,prodDeficit,exception,utExceptionHours:hours(utEx),prodExceptionHours:hours(prodEx),exceptionHours:hours(exception)};
+    return{date:raw.date||'',su,nsu,ut,utException:utEx,prodException:prodEx,total,weighted,suPct:suPct*100,nsuPct:nsuPct*100,targetUrls,deficitUrls,utDeficit,prod540,productivity,prodDeficit,exception,utExceptionHours:hours(utEx),prodExceptionHours:hours(prodEx),exceptionHours:hours(exception)};
   }
   function monthRecords(){const m=$('#monthPicker').value;return state.records.filter(r=>r.date.startsWith(m)).sort((a,b)=>a.date.localeCompare(b))}
   // REQUIRED PERFORMANCE: (target average × working days − achieved total) ÷ remaining working days.
@@ -75,10 +78,10 @@
   function saveSettings(){const f=$('#settingsForm'),n={};Object.keys(DEFAULT_SETTINGS).forEach(k=>{if(f.elements[k])n[k]=k==='storageMode'?f.elements[k].value:num(f.elements[k].value)});n.workingDays=$$('[data-weekday]').map(x=>x.value==='true');state.settings={...state.settings,...n};persist();preview();render();toast('Settings saved')}
   function download(name,type,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
   function exportCsv(){const rs=monthRecords(),a=aggregate(rs),heads=['Date','Days','SU','NSU','Total','SU%','NSU%','Target URLs','Deficit URLs','UT%','UT Deficit','Productivity @540','Productivity @472.5','Exception','UT Exception','UT Exception Hours','Productivity Exception','Productivity Exception Hours'];const rows=rs.map(r=>[r.date,isWorkingDate(r.date)?'Working':'Off',r.su,r.nsu,r.total,r.suPct,r.nsuPct,r.targetUrls,r.deficitUrls,r.ut,r.utDeficit,r.prod540,r.productivity,r.exception,r.utException,r.utExceptionHours,r.prodException,r.prodExceptionHours]);const csv=[['JAMES WORKFLOW'],['Selected month',$('#monthPicker').value],[],heads,...rows,[],['SUMMARY'],['Total URLs',a.total],['Average UT',a.avgUt],['Average Productivity',a.avgProd]].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');download(`james-workflow-${$('#monthPicker').value}.csv`,'text/csv;charset=utf-8',csv)}
-  function importJson(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const x=JSON.parse(reader.result);if(!Array.isArray(x.records)||!x.settings)throw Error();state={...state,...x,settings:{...DEFAULT_SETTINGS,...x.settings}};state.records=state.records.map(calculate);persist();renderSettings();resetForm();render();toast('Backup restored')}catch(_){toast('That file is not a valid JAMES WORKFLOW backup')}};reader.readAsText(f)}
+  function importJson(e){const f=e.target.files[0];if(!f)return;const reader=new FileReader();reader.onload=()=>{try{const x=JSON.parse(reader.result);if(!Array.isArray(x.records)||!x.settings)throw Error();state={...state,...x,settings:{...DEFAULT_SETTINGS,...x.settings},analyzerSettings:{...DEFAULT_ANALYZER,...x.analyzerSettings}};state.records=state.records.map(calculate);persist();renderSettings();resetForm();render();toast('Backup restored')}catch(_){toast('That file is not a valid JAMES WORKFLOW backup')}};reader.readAsText(f)}
   function showPage(id){$$('.page').forEach(x=>x.classList.toggle('active',x.id===id));$$('#nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));$('#pageTitle').textContent=id==='dashboard'?'JAMES WORKFLOW':`${id[0].toUpperCase()+id.slice(1)} · JAMES WORKFLOW`;if(id==='reports')renderReport()}
   function render(){renderDashboard();renderRecords();renderReport()}
-  function init(){load();document.body.classList.toggle('dark',state.theme==='dark');$('#monthPicker').value=iso(new Date()).slice(0,7);resetForm();renderSettings();render();$$('#nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.page));['su','nsu','ut','utException','prodException','date'].forEach(id=>$('#'+id).addEventListener('input',preview));$('#saveDay').onclick=saveDay;$('#resetForm').onclick=resetForm;$('#searchRecords').oninput=renderRecords;$('#recordFilter').onchange=renderRecords;$('#monthPicker').onchange=render;$('#saveSettings').onclick=saveSettings;$('#addHoliday').onclick=()=>{const d=$('#holidayDate').value;if(d&&!state.holidays.includes(d)){state.holidays.push(d);persist();renderSettings();render()}};$('#themeBtn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';document.body.classList.toggle('dark',state.theme==='dark');persist();render()};$('#exportJson').onclick=()=>download(`james-workflow-backup-${iso(new Date())}.json`,'application/json',JSON.stringify(state,null,2));$('#importJson').onchange=importJson;$('#exportCsv').onclick=exportCsv;$('#printBtn').onclick=$('#dataPrint').onclick=$('#pdfBtn').onclick=()=>{showPage('reports');setTimeout(()=>window.print(),50)};$('#clearData').onclick=()=>{if(confirm('Clear all records and excluded dates? This cannot be undone.')){state.records=[];state.holidays=[];persist();renderSettings();render();toast('All data cleared')}};window.addEventListener('resize',()=>drawCharts(monthRecords()))}
-  document.addEventListener('DOMContentLoaded',init);
-})();
-                                                                                              
+  function init(){load();document.body.classList.toggle('dark',state.theme==='dark');$('#monthPicker').value=iso(new Date()).slice(0,7);resetForm();renderSettings();render();$$('#nav button').forEach(b=>b.onclick=()=>showPage(b.dataset.page));['su','nsu','ut','utException','prodException','date'].forEach(id=>$('#'+id).addEventListener('input',preview));$('#saveDay').onclick=saveDay;$('#resetForm').onclick=resetForm;$('#searchRecords').oninput=renderRecords;$('#recordFilter').onchange=renderRecords;$('#monthPicker').onchange=render;$('#saveSettings').onclick=saveSettings;$('#addHoliday').onclick=()=>{const d=$('#holidayDate').value;if(d&&!state.holidays.includes(d)){state.holidays.push(d);persist();renderSettings();render()}};$('#themeBtn').onclick=()=>{state.theme=state.theme==='dark'?'light':'dark';document.body.classList.toggle('dark',state.theme==='dark');persist();render()};$('#exportJson').onclick=()=>download(`james-workflow-backup-${iso(new Date())}.json`,'application/json',JSON.stringify(state,null,2));$('#importJson').onchange=importJson;$('#exportCsv').onclick=exportCsv;$('#printBtn').onclick=$('#dataPrint').onclick=$('#pdfBtn').onclick=()=>{showPage('reports');setTimeout(()=>window.print(),50)};initAnalyzer();$('#clearData').onclick=()=>{if(confirm('Clear all records and excluded dates? This cannot be undone.')){state.records=[];state.holidays=[];persist();renderSettings();render();toast('All data cleared')}};window.addEventListener('resize',()=>{drawCharts(monthRecords());drawPies(aggregate(monthRecords()))})}
+  function aggregate(records){const n=records.length,sum=k=>records.reduce((a,r)=>a+num(r[k]),0),avg=k=>n?sum(k)/n:0,su=sum('su'),nsu=sum('nsu'),total=su+nsu,target=sum('targetUrls');return{n,su,nsu,total,target,completed:total,deficit:target-total,ut:sum('ut'),utDeficit:sum('utDeficit'),exception:sum('exception'),utEx:sum('utException'),prodEx:sum('prodException'),avgSu:total?su/total*100:0,avgNsu:total?nsu/total*100:0,avgUt:avg('ut'),avgProd540:avg('prod540'),avgProd:avg('productivity')}}
+  const deficitText=a=>a.deficit<0?'Exceeded by '+round(Math.abs(a.deficit)):'Deficit '+round(a.deficit);
+  const summaryValues=a=>[['Total SU',a.su],['Total NSU',a.nsu],['Total URLs',a.total],['Total Target URLs',round(a.target)],['Total Completed URLs',a.completed],['Total Target/URL Deficit',deficitText(a),a.deficit<0?'metric-good':'metric-bad'],['Total UT Minutes',round(a.ut)],['Tota
