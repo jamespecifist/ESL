@@ -5,7 +5,7 @@
 (() => {
   'use strict';
   const KEY='james-workflow-v2', $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-  const DEFAULT_SETTINGS={suAht:3.5,nsuAht:1.5,availableMinutes:540,productivityDenominator:472.5,productivityTarget:110,utMinimum:85,targetUrlMultiplier:1,storageMode:'localStorage',workingDays:[true,true,true,true,true,false,false]};
+  const DEFAULT_SETTINGS={suAht:3.5,nsuAht:1.5,availableMinutes:540,productivityDenominator:472.5,productivityTarget:110,utMinimum:85,targetUrlMultiplier:472.50,storageMode:'localStorage',workingDays:[true,true,true,true,true,false,false]};
   let state={records:[],settings:{...DEFAULT_SETTINGS},holidays:[],theme:'light'}, editing=null;
   const num=v=>{v=Number(v);return Number.isFinite(v)&&v>=0?v:0}; const round=(v,d=2)=>Number.isFinite(v)?+v.toFixed(d):0;
   const pct=v=>`${round(v)}%`, minutes=v=>round(v), hours=v=>round(v/60);
@@ -48,7 +48,8 @@
       productivity=weighted/effective472*100;
     // Target URLs is intentionally a configurable legacy-safe rule until the Excel formula is supplied.
     // const targetUrls=total*s.targetUrlMultiplier,
-    const targetUrls=472.5/(su*3.5+nsu*1.5), 
+    // const targetUrls=472.5/(su*3.5+nsu*1.5), 
+     const targetUrls = weighted > 0 ? s.productivityDenominator / weighted : 0,
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
