@@ -39,7 +39,7 @@
       utEx=num(raw.utException),
       prodEx=num(raw.prodException),
       total=su+nsu, 
-      weighted=su*s.suAht+nsu*s.nsuAht, 
+      weighted=suPct*s.suAht+nsuPct*s.nsuAht, 
       exception=utEx+prodEx;
     // Productivity = weighted work minutes ÷ available minutes × 100. Exception minutes reduce available time.
     const effective540=Math.max(1,s.availableMinutes-prodEx), 
@@ -56,13 +56,9 @@
    const suPct = total > 0 ? su / total : 0;
    const nsuPct = total > 0 ? nsu / total : 0;
 
-const weightedAht =
-  (suPct * s.suAht) +
-  (nsuPct * s.nsuAht);
-
 const targetUrls =
-  weightedAht > 0
-    ? 472.5 / weightedAht
+  weighted > 0
+    ? 472.5 / weighted
     : 0;
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
