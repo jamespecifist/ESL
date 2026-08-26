@@ -10,7 +10,7 @@
   <aside class="sidebar">
     <div class="brand">JAMES <span>WORKFLOW</span></div>
     <p class="brand-sub">SU / NSU productivity</p>
-    <nav id="nav"><button class="active" data-page="dashboard">▦ Dashboard</button><button data-page="entry">＋ Daily Entry</button><button data-page="records">☷ Records</button><button data-page="reports">▥ Reports</button><button data-page="settings">⚙ Settings</button><button data-page="data">⇅ Data Management</button></nav>
+    <nav id="nav"><button class="active" data-page="dashboard">▦ Dashboard</button><button data-page="entry">＋ Daily Entry</button><button data-page="records">☷ Records</button><button data-page="reports">▥ Reports</button><button data-page="analyzer">⌕ DL Analyzer</button><button data-page="settings">⚙ Settings</button><button data-page="data">⇅ Data Management</button></nav>
     <div class="sidebar-foot"><button id="themeBtn">◐ Theme</button><small>Static • Private • Local</small></div>
   </aside>
   <main>
@@ -47,9 +47,11 @@
           <canvas id="deficitChart"></canvas>
         </article>
         <article class="panel chart">
-          <h3>Exception minutes</h3>
+          <h3>Daily Exception Minutes</h3>
           <canvas id="exceptionChart"></canvas>
         </article>
+        <article class="panel chart"><h3>Monthly Cumulative Productivity</h3><canvas id="cumulativeProdChart"></canvas></article>
+        <article class="panel chart"><h3>Monthly Cumulative URLs</h3><canvas id="cumulativeUrlsChart"></canvas></article>
       </div>
     </section>
 
@@ -128,11 +130,19 @@
           </thead>
           <tbody>
           </tbody>
+          <tfoot id="recordsSummary"></tfoot>
         </table>
       </div>
     </section>
 
-    <section class="page" id="reports"><div class="section-head"><div><h2>Monthly Report</h2><p id="reportPeriod"></p></div><div><button id="pdfBtn">Export PDF</button></div></div><div id="monthlyReport"></div></section>
+    <section class="page" id="reports"><div class="section-head"><div><h2>Monthly Report</h2><p id="reportPeriod"></p></div><div><button id="pdfBtn">Export PDF</button></div></div><div id="monthlyReport"></div><section class="panel report-summary"><h3>CUMULATIVE SUMMARY</h3><div id="reportSummary"></div></section><div class="chart-grid report-charts"><article class="panel chart"><h3>SU% vs NSU%</h3><canvas id="mixPie"></canvas></article><article class="panel chart"><h3>Completed URLs vs Remaining Target URLs</h3><canvas id="urlPie"></canvas></article><article class="panel chart"><h3>Exception distribution</h3><canvas id="exceptionPie"></canvas></article></div></section>
+
+    <section class="page" id="analyzer">
+      <div class="section-head"><div><h2>DL ANALYZER</h2><p>Live, non-destructive Description Line quality checking.</p></div></div>
+      <div class="analyzer-layout"><article class="panel analyzer-input"><label>Description Line<textarea id="dlText" maxlength="1000" placeholder="Paste a Description Line here…"></textarea></label><div class="dl-count" id="dlCount"></div><div class="dl-settings form-grid"><label>Highlight Keywords<input id="dlKeywords" placeholder="comma or new-line separated"></label><label>Specific Words To Check<input id="dlSpecific" placeholder="comma or new-line separated"></label><label>Do Not Change Words<input id="dlNoChange" placeholder="preserve capitalization"></label><label>Capitalization Exceptions<input id="dlCapExceptions" placeholder="never flag or change"></label></div><button id="saveDlSettings" class="secondary">Save Analyzer Settings</button></article><aside class="panel dl-summary"><h3>CHECK SUMMARY</h3><div id="dlSummary"></div></aside></div>
+      <article class="panel"><h3>Live highlighted preview</h3><div class="dl-preview" id="dlPreview" aria-live="polite"></div><div id="dlIssues" class="dl-issues"></div></article>
+      <div class="dl-output-grid"><article class="panel"><h3>DL1 <span id="dl1Count"></span></h3><div id="dl1" class="dl-output"></div><button data-copy="dl1">Copy DL1</button></article><article class="panel"><h3>DL2 <span id="dl2Count"></span></h3><div id="dl2" class="dl-output"></div><button data-copy="dl2">Copy DL2</button></article><article class="panel"><h3>Original DL <span id="fullDlCount"></span></h3><div id="dlOriginal" class="dl-output"></div><button data-copy="original">Copy Original DL</button></article></div>
+    </section>
 
     <section class="page" id="settings"><div class="section-head"><div><h2>Settings</h2><p>All calculation settings stay editable here.</p></div><button id="saveSettings">Save Settings</button></div><div class="settings-layout"><form id="settingsForm" class="panel form-grid"><label>SU AHT <input name="suAht" type="number" min="0" step="0.01"></label><label>NSU AHT <input name="nsuAht" type="number" min="0" step="0.01"></label><label>Available Minutes <input name="availableMinutes" type="number" min="1" step="0.01"></label><label>Productivity Denominator <input name="productivityDenominator" type="number" min="1" step="0.01"></label><label>Productivity Target % <input name="productivityTarget" type="number" min="0" step="0.01"></label><label>Daily UT Minimum % <input name="utMinimum" type="number" min="0" step="0.01"></label><label>Storage <select name="storageMode"><option value="localStorage">LocalStorage</option><option value="indexedDB">IndexedDB (fallback to LocalStorage)</option></select></label></form><article class="panel"><h3>Working days</h3><p class="muted">Set the normal weekly schedule; holidays and leave dates below override it.</p><div id="weekdayConfig" class="weekdays"></div><hr><label>Holiday / leave / weekoff date <input id="holidayDate" type="date"></label><button id="addHoliday" class="secondary">Add excluded date</button><div id="holidayList" class="chips"></div></article></div></section>
 
@@ -140,3 +150,4 @@
   </main>
 </div><div id="toast" role="status"></div><script src="app.js"></script>
 </body></html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
