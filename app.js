@@ -49,10 +49,11 @@
     // Target URLs is intentionally a configurable legacy-safe rule until the Excel formula is supplied.
     // const targetUrls=total*s.targetUrlMultiplier,
     // const targetUrls=472.5/(su*3.5+nsu*1.5), 
-     const suPct = total ? su / total : 0;
-     const nsuPct = total ? nsu / total : 0;
-     const targetUrls =(suPct * s.suAht + nsuPct * s.nsuAht) > 0 ? s.productivityDenominator /
-      (suPct * s.suAht + nsuPct * s.nsuAht): 0;
+     // const suPct = total ? su / total : 0;
+     // const nsuPct = total ? nsu / total : 0;
+     // const targetUrls =(suPct * s.suAht + nsuPct * s.nsuAht) > 0 ? s.productivityDenominator /
+     //  (suPct * s.suAht + nsuPct * s.nsuAht): 0;
+      const targetUrls =472.5 /((suPct * 3.5) + (nsuPct * 1.5));
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
