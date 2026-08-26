@@ -41,7 +41,7 @@
     // Productivity = weighted work minutes ÷ available minutes × 100. Exception minutes reduce available time.
     const effective540=Math.max(1,s.availableMinutes-prodEx), 
       effective472=Math.max(1,s.productivityDenominator-prodEx), 
-      prod540=(weighted/availableMinutes)*100, 
+      prod540=(weighted/s.availableMinutes)*100, 
       productivity=(weighted/productivityDenominator)*100;
     // Excel equivalent: IFERROR(472.5 / (SU% * 3.5 + NSU% * 1.5), "0").
     // suPct and nsuPct are displayed as 0–100 in the app, so convert them to decimal shares first.
