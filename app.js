@@ -53,7 +53,17 @@
      // const nsuPct = total ? nsu / total : 0;
      // const targetUrls =(suPct * s.suAht + nsuPct * s.nsuAht) > 0 ? s.productivityDenominator /
      //  (suPct * s.suAht + nsuPct * s.nsuAht): 0;
-      const targetUrls =472.5 /((suPct * 3.5) + (nsuPct * 1.5));
+   const suPct = total > 0 ? su / total : 0;
+   const nsuPct = total > 0 ? nsu / total : 0;
+
+const weightedAht =
+  (suPct * s.suAht) +
+  (nsuPct * s.nsuAht);
+
+const targetUrls =
+  weightedAht > 0
+    ? 472.5 / weightedAht
+    : 0;
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
