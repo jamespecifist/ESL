@@ -47,8 +47,8 @@
       prod540=weighted/effective540*100, 
       productivity=weighted/effective472*100;
     // Target URLs is intentionally a configurable legacy-safe rule until the Excel formula is supplied.
-    const targetUrls=total*s.targetUrlMultiplier,
-    // const targetUrls=productivityDenominator/(su*3.5+nsu*1.5), 
+    // const targetUrls=total*s.targetUrlMultiplier,
+    const targetUrls=472.5/(su*3.5+nsu*1.5), 
       deficitUrls=targetUrls-total, 
       utDeficit=Math.max(0,s.utMinimum-ut), 
       prodDeficit=Math.max(0,s.productivityTarget-productivity);
